@@ -17,3 +17,4 @@ passlib
 annotated_doc
 anyio
 certifi
+pymongo
