@@ -11,6 +11,13 @@ class ProfileUpdate(BaseModel):
     specialty: str | None = None
     license_number: str | None = None
     avatar_url: str | None = None
+    # Patient fields
+    age: int | None = None
+    gender: str | None = None
+    emergency_contact: str | None = None
+    health_goals: str | None = None
+    pre_existing_conditions: list[str] | None = None
+    allergies: list[str] | None = None
 
 @router.get("/me")
 async def get_my_profile(current_user: dict = Depends(get_current_user)):

@@ -47,7 +47,9 @@ app.include_router(vision.router, prefix="/api/vision", tags=["Vision"])
 app.include_router(voice.router, prefix="/api/voice", tags=["Voice"])
 
 from app.routes import images
+from app.routes import fitness
 app.include_router(images.router, prefix="/api/images", tags=["Images"])
+app.include_router(fitness.router, prefix="/api/fitness", tags=["Fitness"])
 
 @app.get("/")
 async def root():
