@@ -13,6 +13,7 @@ from app.routes import schedule
 from app.routes import vision
 from app.routes import voice
 from app.routes import roadmap
+from app.routes import reports
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -50,6 +51,7 @@ from app.routes import images
 from app.routes import fitness
 app.include_router(images.router, prefix="/api/images", tags=["Images"])
 app.include_router(fitness.router, prefix="/api/fitness", tags=["Fitness"])
+app.include_router(reports.router, prefix="/api/reports", tags=["Reports"])
 
 @app.get("/")
 async def root():

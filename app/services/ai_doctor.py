@@ -13,7 +13,7 @@ from langchain_core.tools import tool
 from langchain_groq import ChatGroq
 from pydantic import BaseModel, Field, field_validator
 from app.core.database import get_db
-from app.services.rag import search_session_documents
+from app.services.rag import search_session_documents, search_patient_reports
 import logging
 
 logger = logging.getLogger(__name__)
@@ -602,6 +602,22 @@ def track_progress(patient_email: str, log_entry: str) -> str:
         client.close()
 
 
+class SearchReportsInput(BaseModel):
+    query: str = Field(..., description="The medical question or keyword to search for across all the patient's uploaded medical reports and X-ray analyses. Example: 'last chest x-ray findings' or 'blood test cholesterol trends'.")
+    patient_email: str = Field(default="", description="The patient's email. Automatically injected — do not ask for it.")
+
+@tool(args_schema=SearchReportsInput)
+def search_reports(query: str, patient_email: str) -> str:
+    """Search the patient's permanent medical report library (X-rays, PDFs, etc) using AI RAG.
+    ALWAYS call this when a patient asks about their medical history, past test results, or diagnostic trends."""
+    try:
+        import asyncio
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        return loop.run_until_complete(search_patient_reports(query, patient_email))
+    except Exception as e:
+        return f"Failed to search reports: {e}"
+
 # ── System Prompts ────────────────────────────────────────────────────────────
 DOCTOR_SYSTEM_PROMPT = """You are HealthSync, an advanced clinical AI copilot embedded inside a doctor's dashboard.
 
@@ -669,7 +685,7 @@ TOOLS = [
     search_web,
     get_patient_list, create_patient, update_patient, archive_patient,
     get_appointments, create_appointment, update_appointment, cancel_appointment,
-    search_documents
+    search_documents, search_reports
 ]
 
 def doctor_node(state: GraphState):
@@ -678,6 +694,7 @@ def doctor_node(state: GraphState):
     patient_context = state.get("patient_context", "")
     web_search_enabled = state.get("web_search_enabled", True)
     session_id = state.get("session_id", "")
+    patient_email = state.get("patient_email", "") # Need to ensure this is passed in state
 
     doctor_ctx = f"Doctor email: {doctor_email}" if doctor_email else ""
     pt_ctx = f"\n\nPATIENT CONTEXT (pre-loaded):\n{patient_context}" if patient_context else ""
@@ -738,6 +755,8 @@ def doctor_node(state: GraphState):
                 tool_args["doctor_email"] = doctor_email
             if tool_name == "search_documents":
                 tool_args["session_id"] = session_id
+            if tool_name == "search_reports":
+                tool_args["patient_email"] = patient_email
                 
             try:
                 result = tool_map[tool_name].invoke(tool_args)
